@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # 1. Cowrie SSH Honeypot
+  cowrie:
+    image: cowrie/cowrie:latest
+    container_name: cowrie_honeypot
+    restart: always
+    ports:
+      # Low-risk port strategy: Expose host 2222, keep native 22 reserved for host SSH
+      - "${COWRIE_PORT:-2222}:2222"
+    environment:
+      - COWRIE_HONEYPOT_HOSTNAME=${COWRIE_HOSTNAME:-srv-prod-debian12}
+    volumes:
+      # Mount log directory where cowrie.json / cowrie.json.log is generated
+      - ./data/cowrie/log:/cowrie/cowrie-git/var/log/cowrie
+      # Store captured malware downloads
+      - ./data/cowrie/downloads:/cowrie/cowrie-git/var/lib/cowrie/downloads
+      # Store TTY session screen recordings
+      - ./data/cowrie/tty:/cowrie/cowrie-git/var/lib/cowrie/tty
+    # Resource Limits: Prevent CPU exhaustion from malicious loops or miners
+    deploy:
+      resources:
+        limits:
+          cpus: '1.2'
+          memory: 2048M
+    # Log Rotation: Prevent 10GB disk overfill
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+    networks:
+      - honeynet
+
+  # 2. SOC Analysis Engine & Visualization Dashboard
+  soc_dashboard:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cowrie_soc_dashboard
+    restart: always
+    ports:
+      # Map host port 8080 to Dashboard API/Web port 8000
+      - "${WEB_PORT:-8080}:8000"
+    environment:
+      - COWRIE_LOG_PATH=/app/cowrie_logs/cowrie.json.log
+      - DB_PATH=/app/data/honeypot.db
+      - GEOIP_DB_PATH=/app/geoip/GeoLite2-City.mmdb
+      - SERVER_NAME=${SERVER_NAME:-Honeypot-Node-01}
+      - SERVER_LAT=${SERVER_LAT:-1.3521}
+      - SERVER_LON=${SERVER_LON:-103.8198}
+      - SERVER_CITY=${SERVER_CITY:-Singapore}
+      - SERVER_COUNTRY=${SERVER_COUNTRY:-SG}
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - RETENTION_DAYS=${RETENTION_DAYS:-7}
+      - HOST_REAL_IP=${HOST_REAL_IP:-}
+    volumes:
+      # Read-only access to Cowrie logs
+      - ./data/cowrie/log:/app/cowrie_logs:ro
+      # Read-only access to malware download folder for sample hash tracking
+      - ./data/cowrie/downloads:/app/downloads:ro
+      # Persistent SQLite storage
+      - ./data/db:/app/data
+      # Local GeoIP MMDB mount
+      - ./data/geoip:/app/geoip
+      # Frontend static assets
+      - ./frontend:/app/frontend:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.6'
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+    depends_on:
+      - cowrie
+    networks:
+      - honeynet
+
+networks:
+  honeynet:
+    driver: bridge

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+
+# SQLite Databases & Logs
+*.db
+*.db-journal
+*.db-wal
+data/db/*.db
+data/cowrie/log/*.log
+data/cowrie/log/*.json
+data/cowrie/downloads/*
+!data/cowrie/downloads/.gitkeep
+data/cowrie/tty/*
+!data/cowrie/tty/.gitkeep
+data/geoip/*.mmdb
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
