@@ -1,16 +1,16 @@
 /**
- * Threat Map and Intelligence Visualizations powered by Apache ECharts
+ * 态势感知世界地图与威胁数据可视化引擎 (Apache ECharts 5)
  */
 
 let threatMapChart = null;
 let credChart = null;
-let serverCoord = [103.8198, 1.3521]; // Default [lon, lat]
+let serverCoord = [103.8198, 1.3521]; // 默认诱捕探针坐标 [经度, 纬度]
 let activeLines = [];
 let activePoints = [];
 const MAX_LINES = 35;
 
 /**
- * Initialize ECharts World Threat Map
+ * 初始化全球暗黑赛博风格攻击态势地图
  */
 async function initThreatMap(containerId, serverInfo, geoPoints = []) {
     const dom = document.getElementById(containerId);
@@ -22,7 +22,7 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
         serverCoord = [parseFloat(serverInfo.lon), parseFloat(serverInfo.lat)];
     }
 
-    // Try to load offline world.json, fallback to CDN if needed
+    // 优先读取本地离线打包的 world.json，若异常平滑回退至 CDN
     try {
         let worldData;
         try {
@@ -36,11 +36,11 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
         }
         echarts.registerMap('world', worldData);
     } catch (err) {
-        console.error("Failed to load world GeoJSON:", err);
+        console.error("加载全球地图 GeoJSON 失败:", err);
         return;
     }
 
-    // Prepare initial threat sources and flight lines
+    // 组装初始威胁热点与攻击飞线
     activePoints = [];
     activeLines = [];
 
@@ -49,14 +49,14 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
             if (pt.longitude && pt.latitude && (pt.longitude !== 0 || pt.latitude !== 0)) {
                 const coord = [pt.longitude, pt.latitude];
                 activePoints.push({
-                    name: `${pt.city || pt.country} (${pt.attack_count || 1})`,
+                    name: `${pt.city || pt.country} (攻击频次: ${pt.attack_count || 1})`,
                     value: [...coord, pt.attack_count || 1],
                     country: pt.country
                 });
 
                 activeLines.push({
                     fromName: pt.country,
-                    toName: serverInfo ? serverInfo.name : "Honeypot",
+                    toName: serverInfo ? serverInfo.name : "蜜罐探针",
                     coords: [coord, serverCoord]
                 });
             }
@@ -77,7 +77,7 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
             },
             formatter: function (params) {
                 if (params.seriesType === 'lines') {
-                    return `<strong>Threat Trajectory</strong><br/>Origin: ${params.data.fromName}<br/>Target: ${params.data.toName}`;
+                    return `<strong>攻击流向轨迹</strong><br/>威胁源: ${params.data.fromName}<br/>目标探针: ${params.data.toName}`;
                 } else if (params.seriesType === 'effectScatter') {
                     return `<strong>${params.name}</strong>`;
                 }
@@ -106,9 +106,9 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
             }
         },
         series: [
-            // 1. Attack flight lines
+            // 1. 攻击流向飞线 (Lines)
             {
-                name: 'Attack Lines',
+                name: '攻击轨迹飞线',
                 type: 'lines',
                 zlevel: 1,
                 effect: {
@@ -126,9 +126,9 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
                 },
                 data: activeLines.slice(-MAX_LINES)
             },
-            // 2. Attack origin hotspots
+            // 2. 攻击源爆发热点 (EffectScatter)
             {
-                name: 'Attacker Origins',
+                name: '攻击来源热点',
                 type: 'effectScatter',
                 coordinateSystem: 'geo',
                 zlevel: 2,
@@ -151,9 +151,9 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
                 },
                 data: activePoints
             },
-            // 3. Honeypot server beacon (Target)
+            // 3. 蜜罐宿主探针节点 (Target Beacon)
             {
-                name: 'Honeypot Node',
+                name: '蜜罐探针节点',
                 type: 'effectScatter',
                 coordinateSystem: 'geo',
                 zlevel: 3,
@@ -179,7 +179,7 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
                     shadowColor: '#00ff88'
                 },
                 data: [{
-                    name: `HONEYPOT [${serverInfo?.name || 'NODE-01'}]`,
+                    name: `诱捕探针 [${serverInfo?.name || 'Honeypot-Node-01'}]`,
                     value: [...serverCoord, 9999]
                 }]
             }
@@ -191,7 +191,7 @@ async function initThreatMap(containerId, serverInfo, geoPoints = []) {
 }
 
 /**
- * Dynamically push a new attack line & origin ripple onto the live map
+ * 实时动态推送单条攻击流向飞线与涟漪波纹
  */
 function recordAttackOnMap(attack) {
     if (!threatMapChart) return;
@@ -199,16 +199,16 @@ function recordAttackOnMap(attack) {
     if (attack.longitude === 0 && attack.latitude === 0) return;
 
     const origin = [parseFloat(attack.longitude), parseFloat(attack.latitude)];
-    const countryName = attack.country || "Unknown Origin";
+    const countryName = attack.country || "未知来源";
 
     const newLine = {
         fromName: `${countryName} (${attack.src_ip})`,
-        toName: "Honeypot SOC",
+        toName: "SSH 蜜罐探针",
         coords: [origin, serverCoord]
     };
 
     const newPoint = {
-        name: `[NEW ATTACK] ${attack.src_ip} (${countryName})`,
+        name: `【最新威胁】${attack.src_ip} (${countryName})`,
         value: [...origin, 10],
         country: attack.country
     };
@@ -218,7 +218,6 @@ function recordAttackOnMap(attack) {
         activeLines.shift();
     }
 
-    // Keep point pool fresh
     activePoints.push(newPoint);
     if (activePoints.length > 50) {
         activePoints.shift();
@@ -227,11 +226,11 @@ function recordAttackOnMap(attack) {
     threatMapChart.setOption({
         series: [
             {
-                name: 'Attack Lines',
+                name: '攻击轨迹飞线',
                 data: activeLines
             },
             {
-                name: 'Attacker Origins',
+                name: '攻击来源热点',
                 data: activePoints
             }
         ]
@@ -239,7 +238,7 @@ function recordAttackOnMap(attack) {
 }
 
 /**
- * Initialize Top Credentials (Usernames & Passwords) Bar Chart
+ * 渲染爆破用户名排行水平柱状图
  */
 function renderCredentialChart(containerId, topUsers = [], topPasses = []) {
     const dom = document.getElementById(containerId);
@@ -251,7 +250,6 @@ function renderCredentialChart(containerId, topUsers = [], topPasses = []) {
     }
 
     const users = [...topUsers].reverse();
-    const passes = [...topPasses].reverse();
 
     const option = {
         backgroundColor: 'transparent',
@@ -287,7 +285,7 @@ function renderCredentialChart(containerId, topUsers = [], topPasses = []) {
         },
         series: [
             {
-                name: 'Brute-force Hits',
+                name: '尝试爆破次数',
                 type: 'bar',
                 data: users.map(u => u.count),
                 itemStyle: {

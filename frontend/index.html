@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSH Honeypot & Cyber Threat SOC Dashboard</title>
+    <title>SSH 蜜罐与网络攻击态势感知可视化大屏</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -32,123 +32,123 @@
 </head>
 <body class="bg-[#070a13] text-slate-200 antialiased selection:bg-cyan-500 selection:text-black">
 
-    <!-- Top Header Bar -->
+    <!-- 顶部状态导航栏 -->
     <header class="w-full border-b border-cyan-500/20 bg-[#0a0f1d]/90 backdrop-blur-md sticky top-0 z-50 px-4 py-2.5">
         <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-3">
-            <!-- Brand & Node Status -->
+            <!-- 品牌与探针状态 -->
             <div class="flex items-center gap-3">
                 <div class="w-3 h-3 bg-cyan-400 rounded-sm shadow-[0_0_10px_#00f0ff] animate-ping"></div>
                 <div>
                     <h1 class="font-tech text-lg md:text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-rose-400 flex items-center gap-2">
-                        SSH HONEYPOT SOC <span class="text-xs px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono">v1.0 THREAT-RADAR</span>
+                        SSH 蜜罐攻击态势感知大屏 <span class="text-xs px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono">v1.1 实时雷达</span>
                     </h1>
                 </div>
                 <div class="hidden sm:flex items-center gap-2 text-xs font-mono ml-2 border-l border-slate-700/60 pl-3">
-                    <span class="text-slate-500">TARGET:</span>
-                    <span id="node-name" class="text-emerald-400 font-semibold">Honeypot-Primary-01</span>
+                    <span class="text-slate-500">诱捕探针:</span>
+                    <span id="node-name" class="text-emerald-400 font-semibold">Honeypot-Node-01</span>
                 </div>
             </div>
 
-            <!-- Clocks & Connection Health -->
+            <!-- 双时钟与流健康状态 -->
             <div class="flex items-center gap-4 text-xs font-mono">
                 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900/80 border border-slate-800">
                     <span id="ws-status-dot" class="live-dot"></span>
-                    <span id="ws-status-text" class="text-slate-300 font-semibold tracking-wide">STREAM: CONNECTING</span>
+                    <span id="ws-status-text" class="text-slate-300 font-semibold tracking-wide">实时流：正在连接...</span>
                 </div>
                 <div class="hidden md:flex items-center gap-3 text-slate-400">
                     <span id="clock-utc" class="text-cyan-300">--:--:-- UTC</span>
                     <span class="text-slate-700">|</span>
-                    <span id="clock-local" class="text-slate-400">--:--:-- LOCAL</span>
+                    <span id="clock-local" class="text-slate-400">--:--:-- 本地</span>
                 </div>
             </div>
 
-            <!-- Interactive Controls -->
+            <!-- 操作控制组 -->
             <div class="flex items-center gap-2">
-                <button id="btn-audio-toggle" class="cyber-btn px-2.5 py-1 rounded text-xs font-mono font-semibold flex items-center gap-1">
-                    <span>🔇</span> SOUND: MUTED
+                <button id="btn-audio-toggle" class="cyber-btn px-2.5 py-1 rounded text-xs font-mono font-semibold flex items-center gap-1" title="切换警报声效">
+                    <span>🔇</span> 音效：已静音
                 </button>
-                <button id="btn-demo-mode" class="cyber-btn px-2.5 py-1 rounded text-xs font-mono font-semibold flex items-center gap-1">
-                    <span>⚡</span> DEMO: OFF
+                <button id="btn-demo-mode" class="cyber-btn px-2.5 py-1 rounded text-xs font-mono font-semibold flex items-center gap-1" title="开启模拟僵尸网络攻击流">
+                    <span>⚡</span> 模拟演示：关
                 </button>
-                <button id="btn-fire-test" class="cyber-btn px-2.5 py-1 rounded text-xs font-mono font-semibold flex items-center gap-1 text-rose-400 border-rose-500/50 hover:bg-rose-500/20" title="Simulate an instant single attack">
-                    <span>💥</span> TEST ATTACK
+                <button id="btn-fire-test" class="cyber-btn px-2.5 py-1 rounded text-xs font-mono font-semibold flex items-center gap-1 text-rose-400 border-rose-500/50 hover:bg-rose-500/20" title="立即模拟单次攻击飞线">
+                    <span>💥</span> 模拟单次攻击
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Container -->
+    <!-- 主视觉内容区 -->
     <main class="max-w-[1920px] mx-auto p-4 space-y-4">
 
-        <!-- 1. HUD Metric Counters -->
+        <!-- 1. 核心 HUD 指标看板 -->
         <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <!-- Total Detections -->
+            <!-- 累计攻击次数 -->
             <div class="cyber-card cyber-corner p-3 rounded-lg">
                 <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex justify-between">
-                    <span>TOTAL DETECTIONS</span>
-                    <span class="text-cyan-400 font-bold">ALL</span>
+                    <span>累计探测总量</span>
+                    <span class="text-cyan-400 font-bold">TOTAL</span>
                 </div>
                 <div id="stat-total" class="font-tech text-2xl md:text-3xl font-bold text-cyan-400 mt-1">0</div>
-                <div class="text-[10px] text-slate-500 font-mono mt-0.5">SSH connections & probes</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">捕获连接与探测总数</div>
             </div>
 
-            <!-- 24h Attacks -->
+            <!-- 24小时攻击频次 -->
             <div class="cyber-card cyber-corner p-3 rounded-lg">
                 <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex justify-between">
-                    <span>24H ATTACKS</span>
+                    <span>24小时攻击频次</span>
                     <span class="text-rose-400 font-bold">RECENT</span>
                 </div>
                 <div id="stat-24h" class="font-tech text-2xl md:text-3xl font-bold text-rose-400 mt-1">0</div>
-                <div class="text-[10px] text-slate-500 font-mono mt-0.5">Past 24-hour frequency</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">近 24 小时活跃攻击</div>
             </div>
 
-            <!-- Unique Attack IPs -->
+            <!-- 独立攻击源 IP -->
             <div class="cyber-card cyber-corner p-3 rounded-lg">
                 <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex justify-between">
-                    <span>UNIQUE ATTACKERS</span>
-                    <span class="text-emerald-400 font-bold">SOURCE</span>
+                    <span>独立攻击源 IP</span>
+                    <span class="text-emerald-400 font-bold">ATTACKERS</span>
                 </div>
                 <div id="stat-ips" class="font-tech text-2xl md:text-3xl font-bold text-emerald-400 mt-1">0</div>
-                <div class="text-[10px] text-slate-500 font-mono mt-0.5">Distinct public IP nodes</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">去重公网黑客节点</div>
             </div>
 
-            <!-- Trapped Sessions -->
+            <!-- 成功诱捕会话 -->
             <div class="cyber-card cyber-corner p-3 rounded-lg">
                 <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex justify-between">
-                    <span>TRAPPED SESSIONS</span>
-                    <span class="text-amber-400 font-bold">PWNED</span>
+                    <span>成功诱捕会话</span>
+                    <span class="text-amber-400 font-bold">TRAPPED</span>
                 </div>
                 <div id="stat-logins" class="font-tech text-2xl md:text-3xl font-bold text-amber-400 mt-1">0</div>
-                <div class="text-[10px] text-slate-500 font-mono mt-0.5">Successful honeypot logins</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">攻击者弱口令登录成功</div>
             </div>
 
-            <!-- Shell Commands -->
+            <!-- 捕获恶意命令 -->
             <div class="cyber-card cyber-corner p-3 rounded-lg">
                 <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex justify-between">
-                    <span>SHELL COMMANDS</span>
-                    <span class="text-cyan-300 font-bold">INPUT</span>
+                    <span>捕获恶意指令</span>
+                    <span class="text-cyan-300 font-bold">SHELL</span>
                 </div>
                 <div id="stat-cmds" class="font-tech text-2xl md:text-3xl font-bold text-cyan-300 mt-1">0</div>
-                <div class="text-[10px] text-slate-500 font-mono mt-0.5">Post-exploit execution</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">入侵后敲击命令交互</div>
             </div>
 
-            <!-- Malicious Payloads -->
+            <!-- 拦截恶意样本 -->
             <div class="cyber-card cyber-corner p-3 rounded-lg">
                 <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider flex justify-between">
-                    <span>MALWARE DROPPER</span>
+                    <span>拦截木马样本</span>
                     <span class="text-purple-400 font-bold">PAYLOAD</span>
                 </div>
                 <div id="stat-dls" class="font-tech text-2xl md:text-3xl font-bold text-purple-400 mt-1">0</div>
-                <div class="text-[10px] text-slate-500 font-mono mt-0.5">Captured URLs & SHA256</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">自动抓取的恶意 URL / Hash</div>
             </div>
         </section>
 
-        <!-- 2. Core Operational Grid -->
+        <!-- 2. 核心大屏主体 (三栏网格) -->
         <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
             
-            <!-- Left: Terminal Waterfall Feed (3 cols) -->
+            <!-- 左栏：黑客终端实时拦截瀑布流 (4 列) -->
             <div class="lg:col-span-4 flex flex-col cyber-card cyber-corner rounded-lg overflow-hidden h-[540px]">
-                <!-- Terminal Header Bar -->
+                <!-- 终端顶部控制栏 -->
                 <div class="bg-[#0b101f] px-3 py-2 border-b border-cyan-500/20 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <div class="flex items-center gap-1.5">
@@ -156,93 +156,93 @@
                             <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
                         </div>
-                        <span class="text-xs font-mono font-semibold text-slate-300 ml-1">TERMINAL LOG STREAM</span>
+                        <span class="text-xs font-mono font-semibold text-slate-300 ml-1">实时攻击审计流水 (TERMINAL FEED)</span>
                     </div>
-                    <span class="text-[10px] text-cyan-400 font-mono animate-pulse">● TAILING</span>
+                    <span class="text-[10px] text-cyan-400 font-mono animate-pulse">● 实时监听中</span>
                 </div>
 
-                <!-- Event Filters -->
+                <!-- 事件分类过滤按钮 -->
                 <div class="flex items-center gap-1 px-3 py-1.5 bg-slate-900/60 border-b border-slate-800 text-[11px] font-mono">
-                    <button class="tab-filter active px-2 py-0.5 rounded text-cyan-400 font-bold border border-cyan-500/40" data-filter="all">ALL</button>
-                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="login_failed">FAIL</button>
-                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="login_success">SUCCESS</button>
-                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="command">COMMANDS</button>
-                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="file_download">DROPPER</button>
+                    <button class="tab-filter active px-2 py-0.5 rounded text-cyan-400 font-bold border border-cyan-500/40" data-filter="all">全部</button>
+                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="login_failed">爆破失败</button>
+                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="login_success">诱捕成功</button>
+                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="command">Shell指令</button>
+                    <button class="tab-filter px-2 py-0.5 rounded text-slate-400 hover:text-slate-200" data-filter="file_download">样本投递</button>
                 </div>
 
-                <!-- Terminal Scrolling Body -->
+                <!-- 终端滚动流 -->
                 <div id="terminal-stream" class="terminal-window flex-1 overflow-y-auto p-1 divide-y divide-slate-800/30">
-                    <!-- Event rows injected by JS -->
+                    <!-- 事件由 JS 动态插入 -->
                 </div>
             </div>
 
-            <!-- Center: World Threat Map (5 cols) -->
+            <!-- 中栏：ECharts 全球攻击飞线态势地图 (5 列) -->
             <div class="lg:col-span-5 flex flex-col cyber-card cyber-corner rounded-lg overflow-hidden h-[540px]">
                 <div class="bg-[#0b101f] px-3 py-2 border-b border-cyan-500/20 flex items-center justify-between">
                     <span class="text-xs font-mono font-semibold text-slate-300 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>
-                        GLOBAL THREAT DISPERSION & ATTACK TRAJECTORY MAP
+                        全球威胁流向与攻击轨迹地图 (GLOBAL THREAT RADAR)
                     </span>
-                    <span class="text-[10px] text-slate-400 font-mono">INTERACTIVE 3D VECTORS</span>
+                    <span class="text-[10px] text-slate-400 font-mono">3D 动态轨迹</span>
                 </div>
                 <div id="threat-map-container" class="flex-1 w-full h-full relative">
-                    <!-- ECharts world map is rendered here -->
+                    <!-- ECharts 地图渲染区 -->
                 </div>
             </div>
 
-            <!-- Right: Threat Intelligence Leaderboards (3 cols) -->
+            <!-- 右栏：威胁情报排行榜 (3 列) -->
             <div class="lg:col-span-3 flex flex-col gap-4 h-[540px]">
                 
-                <!-- Top 10 Attack Source IPs -->
+                <!-- Top 10 攻击源 IP -->
                 <div class="cyber-card cyber-corner rounded-lg flex-1 flex flex-col overflow-hidden p-3">
                     <div class="text-xs font-mono font-semibold text-slate-300 pb-2 border-b border-cyan-500/20 flex items-center justify-between">
-                        <span>TOP 10 ATTACK SOURCES</span>
-                        <span class="text-[10px] text-rose-400 font-bold">IP BOTNETS</span>
+                        <span>TOP 10 攻击源 IP</span>
+                        <span class="text-[10px] text-rose-400 font-bold">高危僵尸节点</span>
                     </div>
                     <div id="top-ips-list" class="flex-1 overflow-y-auto mt-2 pr-1 space-y-1">
-                        <!-- Top IPs rendered by JS -->
+                        <!-- Top IP 列表 -->
                     </div>
                 </div>
 
-                <!-- Top Credentials (Usernames & Passwords) -->
+                <!-- Top 10 常用爆破用户名与字典 -->
                 <div class="cyber-card cyber-corner rounded-lg flex-1 flex flex-col overflow-hidden p-3">
                     <div class="text-xs font-mono font-semibold text-slate-300 pb-2 border-b border-cyan-500/20 flex items-center justify-between">
-                        <span>TOP BRUTE-FORCE USERNAMES</span>
-                        <span class="text-[10px] text-amber-400 font-bold">DICTIONARY</span>
+                        <span>TOP 10 爆破用户名排行</span>
+                        <span class="text-[10px] text-amber-400 font-bold">高频字典</span>
                     </div>
                     <div id="chart-credentials" class="flex-1 w-full">
-                        <!-- ECharts horizontal bar chart -->
+                        <!-- ECharts 排行柱图 -->
                     </div>
                 </div>
 
             </div>
         </section>
 
-        <!-- 3. Bottom Row: Shell Commands & Malicious Download Audit -->
+        <!-- 3. 底栏：交互命令与恶意文件行为审计区 -->
         <section class="cyber-card cyber-corner rounded-lg overflow-hidden">
             <div class="bg-[#0b101f] px-4 py-2.5 border-b border-cyan-500/20 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="text-cyan-400 font-bold text-sm">#</span>
                     <h2 class="text-xs md:text-sm font-mono font-bold text-slate-200 tracking-wide">
-                        POST-EXPLOITATION BEHAVIOR AUDIT (COMMANDS & MALWARE PAYLOADS)
+                        入侵者后渗透行为审计（恶意 SHELL 指令与木马 PAYLOAD 留痕）
                     </h2>
                 </div>
-                <span class="text-[11px] text-slate-500 font-mono">LIVE FORENSIC TRACE</span>
+                <span class="text-[11px] text-slate-500 font-mono">实时取证留存</span>
             </div>
 
             <div class="overflow-x-auto max-h-64 overflow-y-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-900/80 border-b border-cyan-500/20 text-[11px] font-mono text-slate-400 uppercase">
-                            <th class="py-2 px-3">TIMESTAMP</th>
-                            <th class="py-2 px-3">TYPE</th>
-                            <th class="py-2 px-3">ATTACKER IP</th>
-                            <th class="py-2 px-3">LOCATION</th>
-                            <th class="py-2 px-3">COMMAND / DROPPER URL & SHA256</th>
+                            <th class="py-2 px-3">捕获时间</th>
+                            <th class="py-2 px-3">行为类型</th>
+                            <th class="py-2 px-3">攻击源 IP (已脱敏)</th>
+                            <th class="py-2 px-3">来源归属地</th>
+                            <th class="py-2 px-3">执行命令 / 木马下载地址 & SHA256 指纹</th>
                         </tr>
                     </thead>
                     <tbody id="payload-audit-table" class="divide-y divide-slate-800/40">
-                        <!-- Audit rows injected by JS -->
+                        <!-- 审计条目由 JS 注入 -->
                     </tbody>
                 </table>
             </div>
@@ -250,7 +250,7 @@
 
     </main>
 
-    <!-- Scripts -->
+    <!-- 脚本引用 -->
     <script src="js/charts.js"></script>
     <script src="js/app.js"></script>
 </body>

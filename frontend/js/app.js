@@ -1,5 +1,5 @@
 /**
- * SSH Honeypot SOC Dashboard Frontend Core Application
+ * SSH 蜜罐与态势感知大屏核心前端业务逻辑
  */
 
 const API_BASE = window.location.origin;
@@ -9,7 +9,7 @@ let currentFilter = 'all';
 let isTerminalPaused = false;
 let demoModeActive = false;
 
-// Audio Synthesizer (Web Audio API)
+// Web Audio API 警报音效合成器 (免外部 mp3 依赖)
 function playRadarBlip() {
     if (!audioEnabled) return;
     try {
@@ -23,7 +23,7 @@ function playRadarBlip() {
         const gain = audioCtx.createGain();
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 高频脉冲
         osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.12);
 
         gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
@@ -35,11 +35,11 @@ function playRadarBlip() {
         osc.start();
         osc.stop(audioCtx.currentTime + 0.12);
     } catch (e) {
-        console.warn("Audio playback error:", e);
+        console.warn("音效播放异常:", e);
     }
 }
 
-// Format timestamps
+// 格式化时间戳
 function formatTime(isoStr) {
     if (!isoStr) return "--:--:--";
     try {
@@ -50,7 +50,7 @@ function formatTime(isoStr) {
     }
 }
 
-// Animate numeric counters
+// 数字翻牌跳动动画
 function animateNumber(elementId, targetVal) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -75,7 +75,7 @@ function animateNumber(elementId, targetVal) {
     requestAnimationFrame(step);
 }
 
-// Update HUD summary
+// 更新顶部 HUD 指标
 function updateHUDMetrics(data) {
     if (!data) return;
     animateNumber("stat-total", data.total_events || 0);
@@ -86,7 +86,7 @@ function updateHUDMetrics(data) {
     animateNumber("stat-dls", data.total_downloads || 0);
 }
 
-// Append event to Terminal Waterfall Feed
+// 追加日志事件至终端瀑布流
 function appendEventToTerminal(ev, isNew = true) {
     const stream = document.getElementById("terminal-stream");
     if (!stream) return;
@@ -95,23 +95,22 @@ function appendEventToTerminal(ev, isNew = true) {
     let detailText = '';
 
     if (ev.event_type === 'login_failed') {
-        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-fail">FAIL</span>`;
-        detailText = `<span class="text-slate-400">auth:</span> <span class="text-rose-400 font-semibold">${escapeHtml(ev.username || '-')}:${escapeHtml(ev.password || '-')}</span>`;
+        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-fail">爆破失败</span>`;
+        detailText = `<span class="text-slate-400">凭据尝试:</span> <span class="text-rose-400 font-semibold">${escapeHtml(ev.username || '-')}:${escapeHtml(ev.password || '-')}</span>`;
     } else if (ev.event_type === 'login_success') {
-        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-success animate-pulse">SUCCESS</span>`;
-        detailText = `<span class="text-amber-300 font-bold">TRAPPED!</span> <span class="text-amber-400">${escapeHtml(ev.username || '-')}:${escapeHtml(ev.password || '-')}</span>`;
+        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-success animate-pulse">诱捕成功</span>`;
+        detailText = `<span class="text-amber-300 font-bold">诱捕击中!</span> <span class="text-amber-400">${escapeHtml(ev.username || '-')}:${escapeHtml(ev.password || '-')}</span>`;
     } else if (ev.event_type === 'command') {
-        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-cmd">CMD</span>`;
+        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-cmd">Shell指令</span>`;
         detailText = `<code class="text-cyan-300 bg-cyan-950/60 px-1 py-0.5 rounded">$ ${escapeHtml(ev.command || '')}</code>`;
     } else if (ev.event_type === 'file_download') {
-        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-dl">DROPPER</span>`;
+        typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold badge-dl">木马投递</span>`;
         detailText = `<span class="text-purple-300 font-mono text-[11px] truncate block max-w-xs" title="${escapeHtml(ev.download_url)}">${escapeHtml(ev.download_url || '')}</span>`;
     } else {
         typeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">${escapeHtml(ev.event_type)}</span>`;
         detailText = `<span class="text-slate-500">${escapeHtml(ev.src_ip)}</span>`;
     }
 
-    const countryCode = ev.country_code && ev.country_code !== 'XX' ? ev.country_code.toLowerCase() : 'un';
     const flagHtml = `<span class="text-xs mr-1 font-bold text-slate-300">[${ev.country_code || '??'}]</span>`;
 
     const row = document.createElement("div");
@@ -129,7 +128,7 @@ function appendEventToTerminal(ev, isNew = true) {
             <div class="flex items-center gap-1.5 flex-wrap">
                 ${flagHtml}
                 <span class="text-cyan-400 font-bold">${escapeHtml(ev.src_ip || '0.0.0.0')}</span>
-                <span class="text-slate-600 text-[10px]">(${escapeHtml(ev.city || ev.country || 'Unknown')})</span>
+                <span class="text-slate-600 text-[10px]">(${escapeHtml(ev.city || ev.country || '未知区域')})</span>
             </div>
             <div class="mt-0.5 break-all">${detailText}</div>
         </div>
@@ -137,7 +136,7 @@ function appendEventToTerminal(ev, isNew = true) {
 
     if (isNew) {
         stream.insertBefore(row, stream.firstChild);
-        // Trim stream length to 100 max
+        // 限制流最大条目，避免占用过多浏览器内存
         if (stream.children.length > 120) {
             stream.removeChild(stream.lastChild);
         }
@@ -146,13 +145,13 @@ function appendEventToTerminal(ev, isNew = true) {
     }
 }
 
-// Render Top 10 IP List
+// 渲染 Top 10 攻击源 IP 排行榜
 function renderTopIPs(ips = []) {
     const container = document.getElementById("top-ips-list");
     if (!container) return;
 
     if (!ips.length) {
-        container.innerHTML = `<div class="text-slate-500 text-xs py-4 text-center">No attack records yet</div>`;
+        container.innerHTML = `<div class="text-slate-500 text-xs py-4 text-center">暂无攻击来源记录</div>`;
         return;
     }
 
@@ -169,9 +168,9 @@ function renderTopIPs(ips = []) {
                     <div class="flex items-center gap-1.5">
                         <span class="w-4 ${rankColor}">#${idx + 1}</span>
                         <span class="font-mono text-cyan-300 font-semibold">${escapeHtml(item.src_ip)}</span>
-                        <span class="text-[10px] text-slate-500">[${escapeHtml(item.country || 'Unknown')}]</span>
+                        <span class="text-[10px] text-slate-500">[${escapeHtml(item.country || '未知')}]</span>
                     </div>
-                    <span class="font-mono text-rose-400 font-bold">${item.hit_count} hits</span>
+                    <span class="font-mono text-rose-400 font-bold">${item.hit_count} 次</span>
                 </div>
                 <div class="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
                     <div class="bg-gradient-to-r from-cyan-500 to-rose-500 h-1 rounded-full" style="width: ${pct}%"></div>
@@ -183,13 +182,13 @@ function renderTopIPs(ips = []) {
     container.innerHTML = html;
 }
 
-// Render Top Passwords Leaderboard
+// 渲染 Top 密码字典
 function renderTopPasswords(passwords = []) {
     const container = document.getElementById("top-passwords-list");
     if (!container) return;
 
     if (!passwords.length) {
-        container.innerHTML = `<div class="text-slate-500 text-xs py-4 text-center">No password data yet</div>`;
+        container.innerHTML = `<div class="text-slate-500 text-xs py-4 text-center">暂无弱口令字典记录</div>`;
         return;
     }
 
@@ -207,13 +206,13 @@ function renderTopPasswords(passwords = []) {
     container.innerHTML = html;
 }
 
-// Render Command Audit Table
+// 渲染恶意命令与 Payload 行为审计表
 function renderPayloadAudit(payloads = []) {
     const tbody = document.getElementById("payload-audit-table");
     if (!tbody) return;
 
     if (!payloads.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 text-xs">No interactive payload activities recorded yet</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 text-xs">暂无交互式恶意 Payload 行为记录</td></tr>`;
         return;
     }
 
@@ -221,13 +220,13 @@ function renderPayloadAudit(payloads = []) {
     payloads.slice(0, 30).forEach(p => {
         const isDownload = p.event_type === 'file_download';
         const typeBadge = isDownload
-            ? `<span class="badge-dl text-[10px] px-1.5 py-0.5 rounded font-bold">DROPPER</span>`
-            : `<span class="badge-cmd text-[10px] px-1.5 py-0.5 rounded font-bold">SHELL</span>`;
+            ? `<span class="badge-dl text-[10px] px-1.5 py-0.5 rounded font-bold">木马投递</span>`
+            : `<span class="badge-cmd text-[10px] px-1.5 py-0.5 rounded font-bold">Shell指令</span>`;
 
         const content = isDownload
             ? `<div class="flex flex-col">
                  <span class="text-purple-400 font-mono text-xs">${escapeHtml(p.download_url)}</span>
-                 <span class="text-slate-500 text-[10px] font-mono">SHA256: ${escapeHtml(p.download_hash || 'N/A')}</span>
+                 <span class="text-slate-500 text-[10px] font-mono">SHA256: ${escapeHtml(p.download_hash || '暂无')}</span>
                </div>`
             : `<code class="text-cyan-300 font-mono text-xs">$ ${escapeHtml(p.command)}</code>`;
 
@@ -236,7 +235,7 @@ function renderPayloadAudit(payloads = []) {
                 <td class="py-2 px-3 text-slate-400 whitespace-nowrap font-mono">${formatTime(p.timestamp)}</td>
                 <td class="py-2 px-3">${typeBadge}</td>
                 <td class="py-2 px-3 text-cyan-400 font-mono font-semibold">${escapeHtml(p.src_ip)}</td>
-                <td class="py-2 px-3 text-slate-400">${escapeHtml(p.city || p.country || 'Unknown')}</td>
+                <td class="py-2 px-3 text-slate-400">${escapeHtml(p.city || p.country || '未知区域')}</td>
                 <td class="py-2 px-3">${content}</td>
             </tr>
         `;
@@ -244,7 +243,7 @@ function renderPayloadAudit(payloads = []) {
     tbody.innerHTML = html;
 }
 
-// Helper to sanitize HTML
+// HTML 字符转义工具
 function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -255,7 +254,7 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-// WebSocket Manager with auto-reconnect
+// WebSocket 实时流管理与断线重连
 function connectWebSocket() {
     const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProto}//${window.location.host}/ws/live`;
@@ -266,7 +265,7 @@ function connectWebSocket() {
 
     ws.onopen = () => {
         if (wsStatusDot) wsStatusDot.className = "live-dot";
-        if (wsStatusText) wsStatusText.innerText = "STREAM: LIVE";
+        if (wsStatusText) wsStatusText.innerText = "实时流：已连接";
     };
 
     ws.onmessage = (event) => {
@@ -280,26 +279,26 @@ function connectWebSocket() {
                 }
                 playRadarBlip();
 
-                // Increment stat counter locally
+                // 本地瞬时自增统计
                 const totalEl = document.getElementById("stat-total");
                 if (totalEl) {
                     const cur = parseInt(totalEl.innerText.replace(/,/g, '')) || 0;
                     totalEl.innerText = (cur + 1).toLocaleString();
                 }
 
-                // If command/download, prepend to payload table
+                // 若捕获到命令或下载，自动刷新审计表
                 if (ev.event_type === 'command' || ev.event_type === 'file_download') {
                     refreshPayloads();
                 }
             }
         } catch (e) {
-            console.error("WS parse error:", e);
+            console.error("WS 解析异常:", e);
         }
     };
 
     ws.onclose = () => {
         if (wsStatusDot) wsStatusDot.className = "danger-dot";
-        if (wsStatusText) wsStatusText.innerText = "STREAM: RECONNECTING";
+        if (wsStatusText) wsStatusText.innerText = "实时流：正在重连...";
         setTimeout(connectWebSocket, 3000);
     };
 
@@ -307,7 +306,7 @@ function connectWebSocket() {
         ws.close();
     };
 
-    // Heartbeat ping
+    // 心跳保活
     setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
             ws.send("ping");
@@ -315,7 +314,7 @@ function connectWebSocket() {
     }, 25000);
 }
 
-// Data loaders
+// REST 数据拉取方法
 async function refreshSummary() {
     try {
         const res = await fetch(`${API_BASE}/api/stats/summary`);
@@ -349,7 +348,7 @@ async function refreshPayloads() {
 }
 
 async function loadInitialData() {
-    // 1. Config & Node info
+    // 1. 获取探针元数据
     let serverConfig = null;
     try {
         const confRes = await fetch(`${API_BASE}/api/config`);
@@ -362,13 +361,13 @@ async function loadInitialData() {
         }
     } catch (e) {}
 
-    // 2. Summary stats
+    // 2. 指标汇总
     await refreshSummary();
 
-    // 3. Top analytics
+    // 3. 排行榜
     await refreshTopStats();
 
-    // 4. Geo stats & Threat Map
+    // 4. 全球地理坐标与 ECharts 地图
     try {
         const geoRes = await fetch(`${API_BASE}/api/stats/geo`);
         if (geoRes.ok) {
@@ -381,7 +380,7 @@ async function loadInitialData() {
         await initThreatMap("threat-map-container", serverConfig, []);
     }
 
-    // 5. Recent events for waterfall
+    // 5. 最近事件
     try {
         const evRes = await fetch(`${API_BASE}/api/events/recent?limit=40`);
         if (evRes.ok) {
@@ -390,7 +389,7 @@ async function loadInitialData() {
         }
     } catch (e) {}
 
-    // 6. Payloads
+    // 6. 行为审计表
     await refreshPayloads();
 }
 
@@ -399,34 +398,34 @@ function updateDemoButton() {
     if (!btn) return;
     if (demoModeActive) {
         btn.classList.add("active");
-        btn.innerHTML = `<span class="live-dot mr-1.5"></span> DEMO: ON`;
+        btn.innerHTML = `<span class="live-dot mr-1.5"></span> 模拟演示：运行中`;
     } else {
         btn.classList.remove("active");
-        btn.innerHTML = `<span>⚡</span> DEMO: OFF`;
+        btn.innerHTML = `<span>⚡</span> 模拟演示：关`;
     }
 }
 
-// UI Event Listeners
+// 页面事件监听与初始化
 document.addEventListener("DOMContentLoaded", () => {
     loadInitialData();
     connectWebSocket();
 
-    // Clock
+    // 时钟
     setInterval(() => {
         const now = new Date();
         const utcEl = document.getElementById("clock-utc");
         const locEl = document.getElementById("clock-local");
         if (utcEl) utcEl.innerText = now.toUTCString().slice(17, 25) + " UTC";
-        if (locEl) locEl.innerText = now.toTimeString().slice(0, 8) + " LOCAL";
+        if (locEl) locEl.innerText = now.toTimeString().slice(0, 8) + " 本地";
     }, 1000);
 
-    // Periodic Refresh for Leaderboards
+    // 排行榜定时刷新
     setInterval(() => {
         refreshSummary();
         refreshTopStats();
     }, 15000);
 
-    // Audio Toggle
+    // 音效开关按钮
     const audioBtn = document.getElementById("btn-audio-toggle");
     if (audioBtn) {
         audioBtn.addEventListener("click", () => {
@@ -434,15 +433,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (audioEnabled) {
                 playRadarBlip();
                 audioBtn.classList.add("active");
-                audioBtn.innerHTML = `<span>🔊</span> SOUND: ON`;
+                audioBtn.innerHTML = `<span>🔊</span> 音效：已开启`;
             } else {
                 audioBtn.classList.remove("active");
-                audioBtn.innerHTML = `<span>🔇</span> SOUND: MUTED`;
+                audioBtn.innerHTML = `<span>🔇</span> 音效：已静音`;
             }
         });
     }
 
-    // Demo Mode Toggle
+    // 模拟演练模式开关
     const demoBtn = document.getElementById("btn-demo-mode");
     if (demoBtn) {
         demoBtn.addEventListener("click", async () => {
@@ -457,7 +456,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Trigger Single Attack Test
+    // 单次攻击实战模拟
     const fireBtn = document.getElementById("btn-fire-test");
     if (fireBtn) {
         fireBtn.addEventListener("click", async () => {
@@ -467,14 +466,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Terminal Filter Tabs
+    // 终端瀑布流分类过滤
     document.querySelectorAll(".tab-filter").forEach(tab => {
         tab.addEventListener("click", (e) => {
             document.querySelectorAll(".tab-filter").forEach(t => t.classList.remove("active", "border-cyan-400", "text-cyan-400"));
             tab.classList.add("active", "border-cyan-400", "text-cyan-400");
             currentFilter = tab.getAttribute("data-filter");
 
-            // Filter rows
+            // 过滤匹配行
             document.querySelectorAll("#terminal-stream .event-row").forEach(row => {
                 const rowType = row.getAttribute("data-type");
                 if (currentFilter === 'all' || currentFilter === rowType) {
