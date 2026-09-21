@@ -1,21 +1,23 @@
 import os
 import aiosqlite
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from app.config import DB_PATH
 
-async def get_db_connection() -> aiosqlite.Connection:
-    """Ensure parent directory exists and return an aiosqlite connection."""
+@asynccontextmanager
+async def get_db_connection():
+    """Ensure parent directory exists and yield an aiosqlite connection."""
     db_file = Path(DB_PATH)
     db_file.parent.mkdir(parents=True, exist_ok=True)
-    conn = await aiosqlite.connect(DB_PATH)
-    conn.row_factory = aiosqlite.Row
-    return conn
+    async with aiosqlite.connect(DB_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        yield conn
 
 async def init_db():
     """Initialize SQLite database tables and indices."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +63,7 @@ async def init_db():
 
 async def get_cached_geo(ip: str) -> Optional[Dict[str, Any]]:
     """Retrieve cached IP geolocation information."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute(
             "SELECT country, country_code, city, latitude, longitude FROM ip_geo_cache WHERE ip = ?",
             (ip,)
@@ -80,7 +82,7 @@ async def get_cached_geo(ip: str) -> Optional[Dict[str, Any]]:
 async def cache_geo(ip: str, geo: Dict[str, Any]):
     """Store IP geolocation into cache table."""
     now_iso = datetime.now(timezone.utc).isoformat()
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         await db.execute("""
             INSERT OR REPLACE INTO ip_geo_cache (ip, country, country_code, city, latitude, longitude, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -97,7 +99,7 @@ async def cache_geo(ip: str, geo: Dict[str, Any]):
 
 async def save_event(event: Dict[str, Any]) -> int:
     """Save parsed honeypot event to database."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         cursor = await db.execute("""
             INSERT INTO events (
                 timestamp, session_id, event_type, src_ip, src_port,
@@ -127,7 +129,7 @@ async def save_event(event: Dict[str, Any]) -> int:
 
 async def get_summary_stats() -> Dict[str, Any]:
     """Calculate overall security intelligence metrics."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         # Total attacks / events
         async with db.execute("SELECT COUNT(*) FROM events") as cur:
             total_events = (await cur.fetchone())[0]
@@ -169,7 +171,7 @@ async def get_summary_stats() -> Dict[str, Any]:
 
 async def get_top_ips(limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieve top attacking IPs with country and count."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT src_ip, country, country_code, city, COUNT(*) as hit_count
             FROM events
@@ -183,7 +185,7 @@ async def get_top_ips(limit: int = 10) -> List[Dict[str, Any]]:
 
 async def get_top_usernames(limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieve top attacked usernames."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT username, COUNT(*) as count
             FROM events
@@ -197,7 +199,7 @@ async def get_top_usernames(limit: int = 10) -> List[Dict[str, Any]]:
 
 async def get_top_passwords(limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieve top attacked passwords."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT password, COUNT(*) as count
             FROM events
@@ -211,7 +213,7 @@ async def get_top_passwords(limit: int = 10) -> List[Dict[str, Any]]:
 
 async def get_top_commands(limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieve top attacker shell commands."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT command, COUNT(*) as count
             FROM events
@@ -225,7 +227,7 @@ async def get_top_commands(limit: int = 10) -> List[Dict[str, Any]]:
 
 async def get_recent_events(limit: int = 50) -> List[Dict[str, Any]]:
     """Retrieve most recent events for the terminal waterfall."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT id, timestamp, session_id, event_type, src_ip, src_port,
                    country, country_code, city, latitude, longitude,
@@ -239,7 +241,7 @@ async def get_recent_events(limit: int = 50) -> List[Dict[str, Any]]:
 
 async def get_recent_payloads(limit: int = 50) -> List[Dict[str, Any]]:
     """Retrieve commands and downloaded files."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT id, timestamp, session_id, event_type, src_ip,
                    country, country_code, city, command, download_url, download_hash
@@ -253,7 +255,7 @@ async def get_recent_payloads(limit: int = 50) -> List[Dict[str, Any]]:
 
 async def get_geo_stats(limit: int = 150) -> List[Dict[str, Any]]:
     """Aggregate attack origin coordinates for ECharts threat map."""
-    async with await get_db_connection() as db:
+    async with get_db_connection() as db:
         async with db.execute("""
             SELECT country, country_code, city, latitude, longitude, COUNT(*) as attack_count
             FROM events

@@ -48,7 +48,7 @@ class DiskAndDBCleaner:
                 return
 
             logger.info(f"Pruning SQLite events older than {self.retention_days} days...")
-            async with await get_db_connection() as db:
+            async with get_db_connection() as db:
                 # Delete old detailed event records
                 await db.execute("""
                     DELETE FROM events 
